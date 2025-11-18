@@ -12,17 +12,20 @@ WIN = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Retro Cow Chase Adventure")
 
 # --- COLORS --- Setting PYGAME WINDOW COLORS
-WHITE = (255, 255, 255)
-BLACK = (0, 0, 0)
-RED = (255, 0, 0)
-GREEN = (0, 255, 0)
-BLUE = (0, 0, 255)
-YELLOW = (255, 255, 0)
-ORANGE = (255, 165, 0)
-PURPLE = (128, 0, 128)
-BROWN = (139, 69, 19)
-PINK = (170, 51, 106)
-CYAN = (0, 255, 255)
+game_colors = {
+'WHITE' : (255, 255, 255),
+'BLACK' : (0, 0, 0),
+'RED' : (255, 0, 0),
+'GREEN' : (0, 255, 0),
+'BLUE' : (0, 0, 255),
+'YELLOW' : (255, 255, 0),
+'ORANGE' : (255, 165, 0),
+'PURPLE' : (128, 0, 128),
+'BROWN' : (139, 69, 19),
+'PINK' : (170, 51, 106),
+'CYAN' : (0, 255, 255),
+}
+
 
 # --- FONTS ---
 FONT = pygame.font.SysFont("comicsans", 30)
@@ -105,12 +108,12 @@ def draw_text_centered(text, font, color, surface, y):
 
 def countdown():
     for i in range(3, 0, -1):
-        WIN.fill(WHITE)
-        draw_text_centered(f"Starting in {i}...", BIG_FONT, RED, WIN, HEIGHT//2)
+        WIN.fill(game_colors['WHITE'])
+        draw_text_centered(f"Starting in {i}...", BIG_FONT, game_colors['RED'], WIN, HEIGHT//2)
         pygame.display.update()
         time.sleep(0.1)
 
-def draw_stickman(x, y, color=BLUE):
+def draw_stickman(x, y, color=game_colors['BLUE']):
     global stickman_frame_index, stickman_frame_timer
     
     # Use animated GIF frames
@@ -157,7 +160,7 @@ def draw_cow(x, y, facing_right=True, size=1):
 
 def draw_cookie(x, y):
     # Option 1: Draw with shapes (current method)
-    pygame.draw.circle(WIN, ORANGE, (x+10, y+10), 10)
+    pygame.draw.circle(WIN, game_colors['ORANGE'], (x+10, y+10), 10)
     # Option 2: Use PNG image instead (uncomment when cookie_img is loaded):
     # WIN.blit(cookie_img, (x, y))
 
@@ -166,9 +169,9 @@ def get_player_name():
     name = ""
     entering = True
     while entering:
-        WIN.fill(WHITE)
-        draw_text_centered("Enter your character's name:", FONT, BLACK, WIN, HEIGHT//3)
-        draw_text_centered(name, FONT, BLUE, WIN, HEIGHT//2)
+        WIN.fill(game_colors['WHITE'])
+        draw_text_centered("Enter your character's name:", FONT, game_colors['BLACK'], WIN, HEIGHT//3)
+        draw_text_centered(name, FONT, game_colors['BLUE'], WIN, HEIGHT//2)
         pygame.display.update()
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -236,7 +239,7 @@ def level1():
             WIN.blit(scaled_block, (plat.x, plat.y))
         for c in cookies:
             draw_cookie(c.x, c.y)
-        draw_stickman(player.x, player.y, BLUE)
+        draw_stickman(player.x, player.y, game_colors['BLUE'])
         draw_cow(cow.x, cow.y, facing_right=False)  # Flipped cow image
         pygame.display.update()
 
@@ -295,19 +298,19 @@ def level2():
 
     run = True
     while run:
-        WIN.fill(WHITE)
-        draw_text_centered("Bomb Defusal!", BIG_FONT, BLACK, WIN, HEIGHT//7)
-        draw_text_centered("Press 1-7 to cut wires", FONT, BLACK, WIN, HEIGHT//7+50)
+        WIN.fill(game_colors['WHITE'])
+        draw_text_centered("Bomb Defusal!", BIG_FONT, game_colors['BLACK'], WIN, HEIGHT//7)
+        draw_text_centered("Press 1-7 to cut wires", FONT, game_colors['BLACK'], WIN, HEIGHT//7+50)
 
         # Draw wires
         for i, color in enumerate(rainbow_wires):
             rect = pygame.Rect(155+i*80, HEIGHT//2, 20, 1000)
             pygame.draw.rect(WIN, pygame.Color(color), rect)
         draw_text_centered(' 1       2       3       4       5       6       7',
-                           FONT, BLACK, WIN, HEIGHT//2 - 25)
+                           FONT, game_colors['BLACK'], WIN, HEIGHT//2 - 25)
 
         draw_text_centered(f"Cut sequence: {drawn_order}",
-                           pygame.font.SysFont("comicsans", 20), BLACK, WIN, HEIGHT//4+50)
+                           pygame.font.SysFont("comicsans", 20), game_colors['BLACK'], WIN, HEIGHT//4+50)
         pygame.display.update()
 
         for event in pygame.event.get():
@@ -326,7 +329,7 @@ def level2():
                 if idx is not None:
                     drawn_order.append(rainbow_wires[idx])
                     if drawn_order != wire_order[:len(drawn_order)]:
-                        draw_text_centered("BOOM! Wrong wire!", BIG_FONT, RED, WIN, HEIGHT//2)
+                        draw_text_centered("BOOM! Wrong wire!", BIG_FONT, game_colors['RED'], WIN, HEIGHT//2)
                         pygame.display.update()
                         time.sleep(2)
                         return False
@@ -338,10 +341,10 @@ def level3():
     countdown()
     run = True
     while run:
-        WIN.fill(WHITE)
-        draw_text_centered("Decision Time!", BIG_FONT, BLACK, WIN, HEIGHT//3)
-        draw_text_centered("A: Give milk back", FONT, GREEN, WIN, HEIGHT//2)
-        draw_text_centered("B: Run away", FONT, RED, WIN, HEIGHT//2 + 50)
+        WIN.fill(game_colors['WHITE'])
+        draw_text_centered("Decision Time!", BIG_FONT, game_colors['BLACK'], WIN, HEIGHT//3)
+        draw_text_centered("A: Give milk back", FONT, game_colors['GREEN'], WIN, HEIGHT//2)
+        draw_text_centered("B: Run away", FONT, game_colors['RED'], WIN, HEIGHT//2 + 50)
         pygame.display.update()
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -349,8 +352,8 @@ def level3():
                 sys.exit()
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_a:
-                    WIN.fill(WHITE)
-                    draw_text_centered("Cow is happy! You win!", BIG_FONT, GREEN, WIN, HEIGHT//2)
+                    WIN.fill(game_colors['WHITE'])
+                    draw_text_centered("Cow is happy! You win!", BIG_FONT, game_colors['GREEN'], WIN, HEIGHT//2)
                     pygame.display.update()
                     time.sleep(3)
                     return False
@@ -412,18 +415,18 @@ def level4():
                 time_left = random.randint(GREEN_MIN, GREEN_MAX)
 
         # DRAW
-        WIN.fill(WHITE)
-        draw_stickman(player.x, player.y, BLUE)
+        WIN.fill(game_colors['WHITE'])
+        draw_stickman(player.x, player.y, game_colors['BLUE'])
 
         # Light message
         if light == "GREEN":
-            draw_text_centered("GREEN LIGHT!", FONT, GREEN, WIN, 50)
+            draw_text_centered("GREEN LIGHT!", FONT, game_colors['GREEN'], WIN, 50)
         else:
-            draw_text_centered("RED LIGHT!", FONT, RED, WIN, 50)
+            draw_text_centered("RED LIGHT!", FONT, game_colors['RED'], WIN, 50)
 
         # 3-2-1 warning
         if warning_text:
-            draw_text_centered(warning_text, BIG_FONT, RED, WIN, 120)
+            draw_text_centered(warning_text, BIG_FONT, game_colors['RED'], WIN, 120)
 
         # DRAW COW (direction depends on light)
         # Green light: cow looks away (facing right, away from player)
@@ -462,7 +465,7 @@ def level5():
 
     while run:
         dt = clock.tick(30)
-        WIN.fill(WHITE)
+        WIN.fill(game_colors['WHITE'])
 
         # -------------------------------------
         # PLAYER MOVEMENT (JUMP + GRAVITY)
@@ -512,16 +515,16 @@ def level5():
         # -------------------------------------
         # DRAW ENTITIES
         # -------------------------------------
-        draw_stickman(player.x, player.y, BLUE)
+        draw_stickman(player.x, player.y, game_colors['BLUE'])
         draw_cow(cow.x, cow.y)
-        draw_text_centered("Press SPACE to shoot the cow | UP to jump", FONT, BLACK, WIN, 40)
+        draw_text_centered("Press SPACE to shoot the cow | UP to jump", FONT, game_colors['BLACK'], WIN, 40)
 
         # -------------------------------------
         # UPDATE PLAYER BULLETS
         # -------------------------------------
         for b in bullets_player[:]:
             # Draw bullet
-            pygame.draw.circle(WIN, RED, (b[0], b[1]), 5)
+            pygame.draw.circle(WIN, game_colors['RED'], (b[0], b[1]), 5)
 
             # Move bullet
             b[0] += 12
@@ -538,8 +541,8 @@ def level5():
                 cow_lives -= 1  # reduce life
 
                 if cow_lives <= 0:
-                    WIN.fill(WHITE)
-                    draw_text_centered("You win! Steak and milk!", BIG_FONT, GREEN, WIN, HEIGHT // 2)
+                    WIN.fill(game_colors['WHITE'])
+                    draw_text_centered("You win! Steak and milk!", BIG_FONT, game_colors['GREEN'], WIN, HEIGHT // 2)
                     pygame.display.update()
                     time.sleep(3)
                     return True
@@ -548,7 +551,7 @@ def level5():
         # UPDATE COW BULLETS
         # -------------------------------------
         for cb in bullets_cow[:]:
-            pygame.draw.circle(WIN, PINK, (cb[0], cb[1]), 5)
+            pygame.draw.circle(WIN, game_colors['PINK'], (cb[0], cb[1]), 5)
             cb[0] -= 10
 
             # remove if off-screen
@@ -557,8 +560,8 @@ def level5():
 
             # player hit?
             if player.collidepoint(cb[0], cb[1]):
-                WIN.fill(WHITE)
-                draw_text_centered("You were milk-blasted!", BIG_FONT, PINK, WIN, HEIGHT//2)
+                WIN.fill(game_colors['WHITE'])
+                draw_text_centered("You were milk-blasted!", BIG_FONT, game_colors['PINK'], WIN, HEIGHT//2)
                 pygame.display.update()
                 time.sleep(3)
                 return False
@@ -589,11 +592,11 @@ def main_menu():
     player_name = get_player_name()
     run = True
     while run:
-        WIN.fill(WHITE)
-        draw_text_centered("Retro Cow Chase Adventure", BIG_FONT, BLACK, WIN, HEIGHT//4)
+        WIN.fill(game_colors['WHITE'])
+        draw_text_centered("Retro Cow Chase Adventure", BIG_FONT, game_colors['BLACK'], WIN, HEIGHT//4)
         for i, line in enumerate(["Arrow Keys: Move", "Space: Jump/Shoot/Cut", "Enter: Select/Continue"]):
-            draw_text_centered(line, FONT, BLACK, WIN, HEIGHT//2 + i*40)
-        draw_text_centered("Press ENTER to start", FONT, RED, WIN, HEIGHT-100)
+            draw_text_centered(line, FONT, game_colors['BLACK'], WIN, HEIGHT//2 + i*40)
+        draw_text_centered("Press ENTER to start", FONT, game_colors['RED'], WIN, HEIGHT-100)
         pygame.display.update()
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -607,8 +610,8 @@ def main_menu():
         retry_level(level4)
     retry_level(level5)
 
-    WIN.fill(WHITE)
-    draw_text_centered("Congratulations! Game Complete!", BIG_FONT, GREEN, WIN, HEIGHT//2)
+    WIN.fill(game_colors['WHITE'])
+    draw_text_centered("Congratulations! Game Complete!", BIG_FONT, game_colors['GREEN'], WIN, HEIGHT//2)
     pygame.display.update()
     time.sleep(5)
     pygame.quit()
