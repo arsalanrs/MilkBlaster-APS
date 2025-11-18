@@ -40,6 +40,12 @@ cow_img_original = cow_img.copy()  # Keep original for scaling
 bg_level1 = pygame.image.load("bglevel1.jpeg").convert()
 lv1_blocks_img = pygame.image.load("lv1blocks.jpeg").convert_alpha()
 
+# Load opening page background
+opening_bg = pygame.image.load("openingpage.jpeg").convert()
+
+# Load controls menu background
+controls_bg = pygame.image.load("WhatsApp Image 2025-11-19 at 00.04.47.jpeg").convert()
+
 # --- LOAD STICKMAN GIF ANIMATION ---
 def load_gif_frames(gif_path):
     """Load GIF and extract all frames as pygame surfaces"""
@@ -96,6 +102,7 @@ jump_strength = 15
 gravity = 1
 cow_speed = 3
 level_attempts = 3
+player_name = "Player"  # Global player name
 
 # --- HELPER FUNCTIONS ---
 def draw_text_centered(text, font, color, surface, y):
@@ -111,7 +118,7 @@ def countdown():
         time.sleep(0.1)
 
 def draw_stickman(x, y, color=BLUE):
-    global stickman_frame_index, stickman_frame_timer
+    global stickman_frame_index, stickman_frame_timer, player_name
     
     # Use animated GIF frames
     if stickman_frames:
@@ -133,6 +140,15 @@ def draw_stickman(x, y, color=BLUE):
         pygame.draw.line(WIN, color, (x+20, y+50), (x+30, y+70), 3)
         pygame.draw.line(WIN, color, (x+20, y+35), (x, y+45), 3)
         pygame.draw.line(WIN, color, (x+20, y+35), (x+40, y+45), 3)
+    
+    # Draw player name above the stickman
+    if player_name:
+        name_font = pygame.font.SysFont("comicsans", 20)
+        name_text = name_font.render(player_name, True, WHITE)
+        # Center the name above the character
+        name_x = x + (player_size // 2) - (name_text.get_width() // 2)
+        name_y = y - 25
+        WIN.blit(name_text, (name_x, name_y))
 
 def draw_cow(x, y, facing_right=True, size=1):
     # Base size matching the original cow shape dimensions (increased)
@@ -163,25 +179,52 @@ def draw_cookie(x, y):
 
 # --- PLAYER NAME ---
 def get_player_name():
+    global player_name
     name = ""
     entering = True
+    # Scale opening background to fit screen
+    opening_bg_scaled = pygame.transform.scale(opening_bg, (WIDTH, HEIGHT))
+    
     while entering:
-        WIN.fill(WHITE)
-        draw_text_centered("Enter your character's name:", FONT, BLACK, WIN, HEIGHT//3)
-        draw_text_centered(name, FONT, BLUE, WIN, HEIGHT//2)
+        WIN.blit(opening_bg_scaled, (0, 0))
+        # Only show the name being typed in white
+        if name:
+            draw_text_centered(name, FONT, WHITE, WIN, HEIGHT//2)
         pygame.display.update()
+        
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
             if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_RETURN and name != "":
-                    entering = False
+                if event.key == pygame.K_RETURN:
+                    if name.strip():  # Only proceed if name is not empty
+                        entering = False
                 elif event.key == pygame.K_BACKSPACE:
                     name = name[:-1]
                 else:
-                    name += event.unicode
-    return name
+                    # Add character to name (limit length)
+                    if len(name) < 20 and event.unicode.isprintable():
+                        name += event.unicode
+    
+    player_name = name.strip() if name.strip() else "Player"
+    return player_name
+
+# --- SHOW CONTROLS ---
+def show_controls():
+    # Scale controls background to fit screen
+    controls_bg_scaled = pygame.transform.scale(controls_bg, (WIDTH, HEIGHT))
+    
+    showing = True
+    while showing:
+        WIN.blit(controls_bg_scaled, (0, 0))
+        pygame.display.update()
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_RETURN:
+                showing = False
 
 # --- LEVEL RECURSION ---
 def retry_level(level_func, attempts=level_attempts):
@@ -587,20 +630,8 @@ def main_menu():
     # pygame.mixer.music.play(-1)  # -1 loops forever
     
     player_name = get_player_name()
-    run = True
-    while run:
-        WIN.fill(WHITE)
-        draw_text_centered("Retro Cow Chase Adventure", BIG_FONT, BLACK, WIN, HEIGHT//4)
-        for i, line in enumerate(["Arrow Keys: Move", "Space: Jump/Shoot/Cut", "Enter: Select/Continue"]):
-            draw_text_centered(line, FONT, BLACK, WIN, HEIGHT//2 + i*40)
-        draw_text_centered("Press ENTER to start", FONT, RED, WIN, HEIGHT-100)
-        pygame.display.update()
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-                sys.exit()
-            if event.type == pygame.KEYDOWN and event.key == pygame.K_RETURN:
-                run = False
+    # Show controls page after name entry
+    show_controls()
     retry_level(level1)
     retry_level(level2)
     if retry_level(level3) != 'sigma':
