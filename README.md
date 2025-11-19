@@ -37,7 +37,7 @@ pip install pygame pillow
 
 Simply run the game file:
 ```bash
-python chatgpt_game2.py
+python milkblaster_main.py
 ```
 
 ## 🎯 Controls

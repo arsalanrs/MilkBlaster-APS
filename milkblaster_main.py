@@ -115,7 +115,7 @@ def countdown():
         WIN.fill(WHITE)
         draw_text_centered(f"Starting in {i}...", BIG_FONT, RED, WIN, HEIGHT//2)
         pygame.display.update()
-        time.sleep(0.1)
+        time.sleep(0.2)
 
 def draw_stickman(x, y, color=BLUE):
     global stickman_frame_index, stickman_frame_timer, player_name
@@ -165,7 +165,7 @@ def draw_cow(x, y, facing_right=True, size=1):
     scaled_cow = pygame.transform.scale(cow_img_original, (scaled_width, scaled_height))
     
     # Flip horizontally if facing left
-    if not facing_right:
+    if facing_right:
         scaled_cow = pygame.transform.flip(scaled_cow, True, False)
     
     # Draw the cow image
@@ -280,7 +280,7 @@ def level1():
         for c in cookies:
             draw_cookie(c.x, c.y)
         draw_stickman(player.x, player.y, BLUE)
-        draw_cow(cow.x, cow.y, facing_right=False)  # Flipped cow image
+        draw_cow(cow.x, cow.y, facing_right=True)  # Flipped cow image
         pygame.display.update()
 
         for event in pygame.event.get():
@@ -472,9 +472,9 @@ def level4():
         # Green light: cow looks away (facing right, away from player)
         # Red light: cow looks at player (facing left, towards player)
         if light == "GREEN":
-            draw_cow(cow_x, cow_y, facing_right=False, size=3)  # Flipped to look away
+            draw_cow(cow_x, cow_y, facing_right=True, size=3)  # Flipped to look away
         else:
-            draw_cow(cow_x, cow_y, facing_right=True, size=3)  # Not flipped, looks at player
+            draw_cow(cow_x, cow_y, facing_right=False, size=3)  # Not flipped, looks at player
 
         pygame.display.update()
         clock.tick(30)
@@ -636,7 +636,7 @@ def main_menu():
     retry_level(level2)
     if retry_level(level3) != 'sigma':
         retry_level(level4)
-    retry_level(level5)
+        retry_level(level5)
 
     WIN.fill(WHITE)
     draw_text_centered("Congratulations! Game Complete!", BIG_FONT, GREEN, WIN, HEIGHT//2)
