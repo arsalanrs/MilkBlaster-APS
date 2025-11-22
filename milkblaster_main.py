@@ -23,8 +23,9 @@ BROWN = (139, 69, 19)
 PINK = (170, 51, 106)
 CYAN = (0, 255, 255)
 
-FONT = pygame.font.SysFont("comicsans", 30)
-BIG_FONT = pygame.font.SysFont("comicsans", 50)
+FONT = pygame.font.Font("pixelfont2.otf", 30)
+BIG_FONT = pygame.font.Font("pixelfont2.otf", 50)
+OUTPIXEL_FONT = pygame.font.Font("pixelfont.otf", 50)
 
 clock = pygame.time.Clock()
 
@@ -39,7 +40,12 @@ player_name = "Player"
 # Initial loading
 cow_img = pygame.image.load("Cow_cartoon_04.svg.png").convert_alpha()
 cow_img_original = cow_img.copy()
+loading_bg = pygame.image.load("loadingscreen.jfif").convert()
 bg_level1 = pygame.image.load("bglevel1.jpeg").convert()
+bg_level2 = pygame.image.load("WhatsApp Image 2025-11-22 at 5.21.24 PM.jpeg").convert()
+bg_level3 = pygame.image.load('choices.jfif').convert()
+bg_level4 = pygame.image.load('WhatsApp Image 2025-11-22 at 5.58.58 PM.jfif').convert()
+bg_level5 = pygame.image.load('final.jfif').convert()
 lv1_blocks_img = pygame.image.load("lv1blocks.jpeg").convert_alpha()
 opening_bg = pygame.image.load("openingpage.jpeg").convert()
 controls_bg = pygame.image.load("WhatsApp Image 2025-11-19 at 00.04.47.jpeg").convert()
@@ -88,11 +94,12 @@ def draw_text_centered(text, font, color, surface, y):
     surface.blit(render, rect)
 
 def countdown():
+    loadingscr = pygame.transform.scale(loading_bg, (WIDTH, HEIGHT))
     for i in range(3, 0, -1):
-        WIN.fill(WHITE)
-        draw_text_centered(f"Starting in {i}...", BIG_FONT, RED, WIN, HEIGHT//2)
+        WIN.blit(loadingscr, (0,0))
+        draw_text_centered(f"Going in {i}...", OUTPIXEL_FONT, BLACK, WIN, HEIGHT//1.2)
         pygame.display.update()
-        time.sleep(0.2)
+        time.sleep(0.67)
 
 def draw_stickman(x, y, color=BLUE):
     global stickman_frame_index, stickman_frame_timer, player_name
@@ -116,7 +123,7 @@ def draw_stickman(x, y, color=BLUE):
         pygame.draw.line(WIN, color, (x+20, y+35), (x+40, y+45), 3)
 
     if player_name:
-        name_font = pygame.font.SysFont("comicsans", 20)
+        name_font = pygame.font.Font("pixelfont2.otf", 20)
         name_text = name_font.render(player_name, True, WHITE)
         name_x = x + (player_size // 2) - (name_text.get_width() // 2)
         name_y = y - 25
@@ -148,7 +155,7 @@ def get_player_name():
     while entering:
         WIN.blit(opening_bg_scaled, (0, 0))
         if name:
-            draw_text_centered(name, FONT, WHITE, WIN, HEIGHT//2)
+            draw_text_centered(name, OUTPIXEL_FONT, BLACK, WIN, HEIGHT//2)
         pygame.display.update()
         
         for event in pygame.event.get():
@@ -223,7 +230,7 @@ def level1():
     ]
 
     bg_level1_scaled = pygame.transform.scale(bg_level1, (WIDTH, HEIGHT))
-    
+
     run = True
     while run:
         clock.tick(30)
@@ -264,7 +271,7 @@ def level1():
         if cow.x < player.x:
             cow.x += cow_speed*2
         elif cow.x > player.x:
-            cow.x -= cow_speed*2
+            cow.x -= cow_speed*1.67
         if cow.y < player.y:
             cow.y += cow_speed
         elif cow.y > player.y:
@@ -287,20 +294,21 @@ def level2():
     random.shuffle(rainbow_wires)
     drawn_order = []
 
+    bg_level2_scaled = pygame.transform.scale(bg_level2, (WIDTH, HEIGHT))
+
     run = True
     while run:
-        WIN.fill(WHITE)
-        draw_text_centered("Bomb Defusal!", BIG_FONT, BLACK, WIN, HEIGHT//7)
-        draw_text_centered("Press 1-7 to cut wires", FONT, BLACK, WIN, HEIGHT//7+50)
+        WIN.blit(bg_level2_scaled, (0, 0))
 
         for i, color in enumerate(rainbow_wires):
             rect = pygame.Rect(155+i*80, HEIGHT//2, 20, 1000)
             pygame.draw.rect(WIN, pygame.Color(color), rect)
         draw_text_centered(' 1       2       3       4       5       6       7',
-                           FONT, BLACK, WIN, HEIGHT//2 - 25)
+                           FONT, WHITE, WIN, HEIGHT//2 - 35)
 
         draw_text_centered(f"Cut sequence: {drawn_order}",
-                           pygame.font.SysFont("comicsans", 20), BLACK, WIN, HEIGHT//4+50)
+                           pygame.font.Font("pixelfont2.otf", 20), WHITE, WIN, HEIGHT//4+15)
+
         pygame.display.update()
 
         for event in pygame.event.get():
@@ -328,25 +336,25 @@ def level2():
 
 def level3():
     countdown()
+    bg_level3_scaled = pygame.transform.scale(bg_level3, (WIDTH, HEIGHT))
     run = True
     while run:
-        WIN.fill(WHITE)
-        draw_text_centered("Decision Time!", BIG_FONT, BLACK, WIN, HEIGHT//3)
-        draw_text_centered("A: Give milk back", FONT, GREEN, WIN, HEIGHT//2)
-        draw_text_centered("B: Run away", FONT, RED, WIN, HEIGHT//2 + 50)
+        WIN.blit(bg_level3_scaled,(0,0))
+        draw_text_centered(f"{'  '*26}B: Give milk back", pygame.font.Font("pixelfont2.otf", 28), GREEN, WIN, HEIGHT//3+15)
+        draw_text_centered(f"A: Run away{'  '*25}", FONT, RED, WIN, HEIGHT//3+7)
         pygame.display.update()
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
             if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_a:
+                if event.key == pygame.K_b:
                     WIN.fill(WHITE)
                     draw_text_centered("Cow is happy! You win!", BIG_FONT, GREEN, WIN, HEIGHT//2)
                     pygame.display.update()
                     time.sleep(3)
                     return False
-                elif event.key == pygame.K_b:
+                elif event.key == pygame.K_a:
                     return True
 
 def level4():
@@ -362,10 +370,13 @@ def level4():
     time_left = random.randint(greenmin, greenmax)
     last_tick = pygame.time.get_ticks()
 
-    cow_x = WIDTH - 200
+    bg_level4_scaled = pygame.transform.scale(bg_level4, (WIDTH, HEIGHT))
+
+    cow_x = WIDTH - 220
     cow_y = HEIGHT - 400
 
     while run:
+        WIN.blit(bg_level4_scaled, (0,0))
         dt = (pygame.time.get_ticks() - last_tick) / 1000
         last_tick = pygame.time.get_ticks()
         time_left -= dt
@@ -378,7 +389,7 @@ def level4():
         keys = pygame.key.get_pressed()
         if light == "GREEN":
             if keys[pygame.K_RIGHT]:
-                player.x += player_speed // 4
+                player.x += player_speed // 2.5
                 if player.x >= goal_x:
                     return True
         else:
@@ -397,7 +408,6 @@ def level4():
                 light = "GREEN"
                 time_left = random.randint(greenmin, greenmax)
 
-        WIN.fill(WHITE)
         draw_stickman(player.x, player.y, BLUE)
 
         if light == "GREEN":
@@ -435,12 +445,14 @@ def level5():
     bullets_player = []
     bullets_cow = []
 
+    bg_level5_scaled = pygame.transform.scale(bg_level5, (WIDTH, HEIGHT))
+
     run = True
 
     while run:
         dt = clock.tick(30)
         current_time = pygame.time.get_ticks()
-        WIN.fill(WHITE)
+        WIN.blit(bg_level5_scaled, (0,0))
 
         keys = pygame.key.get_pressed()
 
