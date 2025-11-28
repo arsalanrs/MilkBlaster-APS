@@ -4,24 +4,54 @@ import random
 import time
 from PIL import Image
 
+# Try to import cv2 for video playback, if not available, skip video
+try:
+    import cv2
+    VIDEO_AVAILABLE = True
+except ImportError:
+    VIDEO_AVAILABLE = False
+    print("Warning: opencv-python not installed. Video playback disabled.")
+
 pygame.init()
+# Initialize mixer for audio playback
+pygame.mixer.init(frequency=44100, size=-16, channels=2, buffer=512)
 
 # Basic setup
 WIDTH, HEIGHT = 800, 600
 WIN = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Retro Cow Chase Adventure")
 
-WHITE = (255, 255, 255)
-BLACK = (0, 0, 0)
-RED = (255, 0, 0)
-GREEN = (0, 255, 0)
-BLUE = (0, 0, 255)
-YELLOW = (255, 255, 0)
-ORANGE = (255, 165, 0)
-PURPLE = (128, 0, 128)
-BROWN = (139, 69, 19)
-PINK = (170, 51, 106)
-CYAN = (0, 255, 255)
+# Dictionary to store color RGB values
+# Dictionaries use key-value pairs: {key: value}
+# Example: "WHITE" is the key, (255, 255, 255) is the value
+# You access values using: COLOR_DICT["WHITE"]
+COLOR_DICT = {
+    "WHITE": (255, 255, 255),
+    "BLACK": (0, 0, 0),
+    "RED": (255, 0, 0),
+    "GREEN": (0, 255, 0),
+    "BLUE": (0, 0, 255),
+    "YELLOW": (255, 255, 0),
+    "ORANGE": (255, 165, 0),
+    "PURPLE": (128, 0, 128),
+    "BROWN": (139, 69, 19),
+    "PINK": (170, 51, 106),
+    "CYAN": (0, 255, 255)
+}
+
+# Extract colors from dictionary for backwards compatibility
+# This allows existing code to still use WHITE, BLACK, etc.
+WHITE = COLOR_DICT["WHITE"]
+BLACK = COLOR_DICT["BLACK"]
+RED = COLOR_DICT["RED"]
+GREEN = COLOR_DICT["GREEN"]
+BLUE = COLOR_DICT["BLUE"]
+YELLOW = COLOR_DICT["YELLOW"]
+ORANGE = COLOR_DICT["ORANGE"]
+PURPLE = COLOR_DICT["PURPLE"]
+BROWN = COLOR_DICT["BROWN"]
+PINK = COLOR_DICT["PINK"]
+CYAN = COLOR_DICT["CYAN"]
 
 FONT = pygame.font.Font("pixelfont2.otf", 30)
 BIG_FONT = pygame.font.Font("pixelfont2.otf", 50)
@@ -50,6 +80,13 @@ lv1_blocks_img = pygame.image.load("lv1blocks.jpeg").convert_alpha()
 opening_bg = pygame.image.load("openingpage.jpeg").convert()
 controls_bg = pygame.image.load("WhatsApp Image 2025-11-19 at 00.04.47.jpeg").convert()
 # cookie_img = pygame.image.load("images/cookie.png").convert_alpha()
+
+# Bullet images for level 5
+bullet_size = 25  # Increased from 10
+player_bullet_img = pygame.image.load("stickmanblast.png").convert_alpha()
+player_bullet_img = pygame.transform.scale(player_bullet_img, (bullet_size, bullet_size))
+cow_bullet_img = pygame.image.load("milkblastcow.jpg").convert_alpha()
+cow_bullet_img = pygame.transform.scale(cow_bullet_img, (bullet_size, bullet_size))
 
 def load_gif_frames(gif_path):
     frames = []
@@ -189,6 +226,197 @@ def show_controls():
             if event.type == pygame.KEYDOWN and event.key == pygame.K_RETURN:
                 showing = False
 
+def play_opening_scene(video_path="openingscenevideo.mp4", audio_path="openingscenevideo.mp3"):
+    """
+    Play opening scene video before level 1 with audio
+    Uses OpenCV to read video frames and pygame.mixer to play audio from separate MP3 file
+    """
+    # Check if cv2 is available (runtime check, not just import time)
+    try:
+        import cv2
+        cv2_available = True
+    except ImportError:
+        cv2_available = False
+    
+    # If cv2 is not available, skip video playback
+    if not cv2_available:
+        print("OpenCV not available - skipping opening scene video")
+        print("Install with: pip install opencv-python")
+        # Show a message on screen that video is unavailable
+        WIN.fill(BLACK)
+        draw_text_centered("Video unavailable", FONT, WHITE, WIN, HEIGHT//2 - 20)
+        draw_text_centered("Press any key to continue", FONT, WHITE, WIN, HEIGHT//2 + 20)
+        pygame.display.update()
+        waiting = True
+        while waiting:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    sys.exit()
+                if event.type == pygame.KEYDOWN:
+                    waiting = False
+                    break
+            clock.tick(30)
+        return
+    
+    try:
+        # Open video file using OpenCV (cv2 already imported above)
+        cap = cv2.VideoCapture(video_path)
+        
+        if not cap.isOpened():
+            print(f"Warning: Could not open video file: {video_path}")
+            print(f"Make sure the file exists in the current directory")
+            # Show error message on screen
+            WIN.fill(BLACK)
+            draw_text_centered("Video file not found", FONT, RED, WIN, HEIGHT//2 - 20)
+            draw_text_centered(f"Looking for: {video_path}", 
+                             pygame.font.Font("pixelfont2.otf", 20), 
+                             WHITE, WIN, HEIGHT//2 + 10)
+            draw_text_centered("Press any key to continue", 
+                             FONT, WHITE, WIN, HEIGHT//2 + 40)
+            pygame.display.update()
+            waiting = True
+            while waiting:
+                for event in pygame.event.get():
+                    if event.type == pygame.QUIT:
+                        cap.release()
+                        pygame.quit()
+                        sys.exit()
+                    if event.type == pygame.KEYDOWN:
+                        waiting = False
+                        break
+                clock.tick(30)
+            return
+        
+        print(f"Playing opening scene video: {video_path}")
+        
+        # Get video properties
+        fps = cap.get(cv2.CAP_PROP_FPS)
+        if fps <= 0:
+            fps = 30  # Default to 30 FPS if can't read
+        
+        # Get video duration for audio syncing
+        frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+        video_duration = frame_count / fps if fps > 0 else 0
+        
+        frame_delay = 1.0 / fps  # Calculate time per frame
+        
+        # Load and play audio from separate MP3 file
+        audio_loaded = False
+        import os
+        
+        # Check if audio file exists
+        if os.path.exists(audio_path):
+            try:
+                print(f"Loading audio file: {audio_path}")
+                pygame.mixer.music.load(audio_path)
+                pygame.mixer.music.set_volume(1.0)  # Full volume
+                audio_loaded = True
+                print("Audio loaded successfully!")
+            except Exception as e:
+                print(f"Warning: Could not load audio file: {e}")
+                audio_loaded = False
+        else:
+            print(f"Warning: Audio file not found: {audio_path}")
+            print("Video will play without audio")
+        
+        playing = True
+        
+        # Start audio playback when video starts (right before first frame)
+        if audio_loaded:
+            try:
+                print("Starting audio playback...")
+                pygame.mixer.music.play()
+                
+                # Give mixer a moment to start
+                pygame.time.wait(10)
+                
+                if pygame.mixer.music.get_busy():
+                    print("✓ Audio playback started successfully!")
+                else:
+                    print("WARNING: Audio not playing. Trying again...")
+                    pygame.mixer.music.set_volume(1.0)
+                    pygame.mixer.music.play()
+                    pygame.time.wait(50)
+                    if pygame.mixer.music.get_busy():
+                        print("✓ Audio started on second attempt!")
+            except Exception as e:
+                print(f"ERROR: Could not start audio playback: {e}")
+                import traceback
+                traceback.print_exc()
+        
+        while playing:
+            ret, frame = cap.read()  # Read next frame
+            
+            if not ret:  # End of video
+                break
+            
+            # Convert BGR (OpenCV default) to RGB (pygame uses RGB)
+            frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            
+            # Resize frame to match game window size
+            frame_resized = cv2.resize(frame_rgb, (WIDTH, HEIGHT))
+            
+            # Convert numpy array to PIL Image, then to pygame surface
+            # This method is more reliable than direct numpy conversion
+            frame_pil = Image.fromarray(frame_resized)
+            # Use frombytes for newer pygame versions, fromstring for older
+            try:
+                frame_surface = pygame.image.frombytes(
+                    frame_pil.tobytes(), 
+                    frame_pil.size, 
+                    frame_pil.mode
+                ).convert()
+            except AttributeError:
+                # Fallback for older pygame versions
+                frame_surface = pygame.image.fromstring(
+                    frame_pil.tobytes(), 
+                    frame_pil.size, 
+                    frame_pil.mode
+                ).convert()
+            
+            # Display frame on screen
+            WIN.blit(frame_surface, (0, 0))
+            pygame.display.update()
+            
+            # Control playback speed to match video FPS
+            # Cap at reasonable FPS to prevent video from playing too fast
+            target_fps = max(min(fps, 60), 10)  # Between 10 and 60 FPS
+            clock.tick(target_fps)
+            
+            # Check for quit events or skip button
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    cap.release()
+                    pygame.quit()
+                    sys.exit()
+                # Allow user to skip video by pressing any key
+                if event.type == pygame.KEYDOWN:
+                    print("Video skipped by user")
+                    playing = False
+                    # Stop audio if playing
+                    if pygame.mixer.music.get_busy():
+                        pygame.mixer.music.stop()
+                    break
+        
+        cap.release()  # Release video file
+        
+        # Wait for audio to finish if it's still playing
+        if audio_loaded and pygame.mixer.music.get_busy():
+            print("Waiting for audio to finish...")
+            while pygame.mixer.music.get_busy():
+                pygame.time.wait(100)  # Wait 100ms at a time
+        
+        print("Opening scene video finished")
+        # Brief pause after video ends
+        time.sleep(0.5)
+        
+    except Exception as e:
+        import traceback
+        print(f"Error playing opening scene video: {e}")
+        traceback.print_exc()
+        # Continue game even if video fails
+
 # level system setup
 def retry_level(level_func, attempts=level_attempts):
     if attempts == 0:
@@ -205,6 +433,20 @@ def retry_level(level_func, attempts=level_attempts):
 # levels
 def level1():
     countdown()
+    
+    # Dictionary storing level 1 specific configuration
+    # Each key represents a game mechanic, value is its setting
+    # Dictionaries help organize related data together
+    level1_config = {
+        "player_speed_multiplier": 0.85,  # 15% speed reduction
+        "cow_speed_x": 1.8,  # Horizontal cow movement multiplier
+        "cow_speed_y_up": 0.9,  # Vertical cow speed when moving up
+        "cow_speed_y_down": 0.9,  # Vertical cow speed when moving down
+        "cow_speed_x_backward": 1.5  # Cow speed when moving backward
+    }
+    
+    # Access dictionary values using square brackets: level1_config["key"]
+    level1_player_speed = player_speed * level1_config["player_speed_multiplier"]
     player = pygame.Rect(100, HEIGHT-100, player_size, player_size)
     cow = pygame.Rect(-200, HEIGHT-100, player_size, player_size)
     player_vel_y = 0
@@ -251,9 +493,9 @@ def level1():
 
         keys = pygame.key.get_pressed()
         if keys[pygame.K_LEFT]:
-            player.x -= player_speed
+            player.x -= level1_player_speed
         if keys[pygame.K_RIGHT]:
-            player.x += player_speed
+            player.x += level1_player_speed
         if keys[pygame.K_SPACE] and on_ground:
             player_vel_y = -jump_strength
             on_ground = False
@@ -268,19 +510,23 @@ def level1():
                 player_vel_y = 0
                 on_ground = True
 
+        # Use dictionary values to control cow movement speed
+        # Dictionaries make it easy to adjust values in one place
         if cow.x < player.x:
-            cow.x += cow_speed*2
+            cow.x += cow_speed * level1_config["cow_speed_x"]
         elif cow.x > player.x:
-            cow.x -= cow_speed*1.67
+            cow.x -= cow_speed * level1_config["cow_speed_x_backward"]
         if cow.y < player.y:
-            cow.y += cow_speed
+            cow.y += cow_speed * level1_config["cow_speed_y_up"]
         elif cow.y > player.y:
-            cow.y -= cow_speed
+            cow.y -= cow_speed * level1_config["cow_speed_y_down"]
         if player.colliderect(cow):
             return False
 
         for c in cookies[:]:
-            if player.colliderect(c):
+            # Smaller hitbox for cookies (14x14 instead of 20x20)
+            cookie_hitbox = pygame.Rect(c.x + 3, c.y + 3, 14, 14)
+            if player.colliderect(cookie_hitbox):
                 cookies.remove(c)
                 # cookie_sound.play()
 
@@ -293,6 +539,26 @@ def level2():
     wire_order = rainbow_wires.copy()
     random.shuffle(rainbow_wires)
     drawn_order = []
+
+    # Dictionary mapping keyboard keys to wire indices (0-6)
+    # Each pygame key constant maps directly to a wire position
+    # Access with: key_to_wire_index[pygame.K_1] returns 0
+    key_to_wire_index = {
+        pygame.K_1: 0,   # Key 1 on main keyboard -> wire index 0
+        pygame.K_KP1: 0, # Key 1 on numpad -> wire index 0
+        pygame.K_2: 1,   # Key 2 on main keyboard -> wire index 1
+        pygame.K_KP2: 1, # Key 2 on numpad -> wire index 1
+        pygame.K_3: 2,   # Key 3 on main keyboard -> wire index 2
+        pygame.K_KP3: 2, # Key 3 on numpad -> wire index 2
+        pygame.K_4: 3,   # Key 4 on main keyboard -> wire index 3
+        pygame.K_KP4: 3, # Key 4 on numpad -> wire index 3
+        pygame.K_5: 4,   # Key 5 on main keyboard -> wire index 4
+        pygame.K_KP5: 4, # Key 5 on numpad -> wire index 4
+        pygame.K_6: 5,   # Key 6 on main keyboard -> wire index 5
+        pygame.K_KP6: 5, # Key 6 on numpad -> wire index 5
+        pygame.K_7: 6,   # Key 7 on main keyboard -> wire index 6
+        pygame.K_KP7: 6  # Key 7 on numpad -> wire index 6
+    }
 
     bg_level2_scaled = pygame.transform.scale(bg_level2, (WIDTH, HEIGHT))
 
@@ -316,14 +582,12 @@ def level2():
                 pygame.quit()
                 sys.exit()
             if event.type == pygame.KEYDOWN:
-                idx = None
-                if event.key in [pygame.K_1, pygame.K_KP1]: idx = 0
-                elif event.key in [pygame.K_2, pygame.K_KP2]: idx = 1
-                elif event.key in [pygame.K_3, pygame.K_KP3]: idx = 2
-                elif event.key in [pygame.K_4, pygame.K_KP4]: idx = 3
-                elif event.key in [pygame.K_5, pygame.K_KP5]: idx = 4
-                elif event.key in [pygame.K_6, pygame.K_KP6]: idx = 5
-                elif event.key in [pygame.K_7, pygame.K_KP7]: idx = 6
+                # Use dictionary to lookup wire index for pressed key
+                # .get() method safely returns None if key doesn't exist
+                # This prevents errors if player presses wrong key
+                idx = key_to_wire_index.get(event.key)
+                
+                # If a valid key was pressed (idx is not None)
                 if idx is not None:
                     drawn_order.append(rainbow_wires[idx])
                     if drawn_order != wire_order[:len(drawn_order)]:
@@ -362,12 +626,19 @@ def level4():
     player = pygame.Rect(50, HEIGHT - 100, player_size, player_size)
     goal_x = WIDTH - 100
 
-    greenmin, greenmax = 3, 5
-    redmin, redmax = 2, 3
+    # Dictionary storing timing ranges for each light state
+    # Nested dictionaries: each light state has min/max timing values
+    # Structure: {"LIGHT_STATE": {"min": value, "max": value}}
+    light_timing = {
+        "GREEN": {"min": 3, "max": 5},  # Green light lasts 3-5 seconds
+        "RED": {"min": 2, "max": 3}     # Red light lasts 2-3 seconds
+    }
 
     run = True
     light = "GREEN"
-    time_left = random.randint(greenmin, greenmax)
+    # Access nested dictionary: light_timing["GREEN"]["min"] gets minimum value
+    time_left = random.randint(light_timing["GREEN"]["min"], 
+                               light_timing["GREEN"]["max"])
     last_tick = pygame.time.get_ticks()
 
     bg_level4_scaled = pygame.transform.scale(bg_level4, (WIDTH, HEIGHT))
@@ -401,12 +672,16 @@ def level4():
             warning_text = '!!!'
 
         if time_left <= 0:
+            # Switch light state and get new timing from dictionary
             if light == "GREEN":
                 light = "RED"
-                time_left = random.randint(redmin, redmax)
+                # Use current light state to get timing from dictionary
+                time_left = random.randint(light_timing[light]["min"], 
+                                         light_timing[light]["max"])
             else:
                 light = "GREEN"
-                time_left = random.randint(greenmin, greenmax)
+                time_left = random.randint(light_timing[light]["min"], 
+                                         light_timing[light]["max"])
 
         draw_stickman(player.x, player.y, BLUE)
 
@@ -427,23 +702,49 @@ def level4():
         clock.tick(30)
 
 def level5():
+    global player_size
     countdown()
 
-    player = pygame.Rect(100, HEIGHT - 100, player_size, player_size)
+    # Dictionary storing all level 5 game settings
+    # Dictionaries are great for organizing related configuration data
+    level5_settings = {
+        "player_size_multiplier": 1.3,      # Player is 30% larger
+        "cow_size_multiplier": 1.4,         # Cow is 40% larger
+        "base_cow_width": 75,               # Base cow image width
+        "base_cow_height": 50,              # Base cow image height
+        "gravity": 1,                       # Downward acceleration
+        "jump_power": -18,                  # Upward velocity when jumping
+        "cooldown_duration": 500,           # Milliseconds between shots
+        "cow_speed": 3,                     # Cow movement speed
+        "cow_lives": 3,                     # Number of hits to defeat cow
+        "bullet_speed_player": 12,          # Player bullet speed (right)
+        "bullet_speed_cow": 10,             # Cow bullet speed (left)
+        "cow_shoot_min": 40,                # Min frames between cow shots
+        "cow_shoot_max": 60                 # Max frames between cow shots
+    }
+    
+    # Calculate sizes using dictionary values
+    level5_player_size = int(player_size * level5_settings["player_size_multiplier"])
+    level5_cow_size = level5_settings["cow_size_multiplier"]
+    
+    player = pygame.Rect(100, HEIGHT - 100, level5_player_size, level5_player_size)
     player_y_vel = 0
-    gravity = 1
-    jump_power = -18
-    cooldown_duration = 500
+    gravity = level5_settings["gravity"]
+    jump_power = level5_settings["jump_power"]
+    cooldown_duration = level5_settings["cooldown_duration"]
     last_key_press_time = 0
     on_ground = True
 
-    cow = pygame.Rect(WIDTH - 150, HEIGHT, player_size, player_size)
+    # Use dictionary values to calculate cow dimensions
+    cow = pygame.Rect(WIDTH - 150, HEIGHT, 
+                     int(level5_settings["base_cow_width"] * level5_cow_size), 
+                     int(level5_settings["base_cow_height"] * level5_cow_size))
     cow_direction = -1
-    cow_speed = 3
-    cow_lives = 3
+    cow_speed = level5_settings["cow_speed"]
+    cow_lives = level5_settings["cow_lives"]
     cow_shoot_timer = 0
-    bullets_player = []
-    bullets_cow = []
+    bullets_player = []  # Will store [x, y] positions
+    bullets_cow = []  # Will store [x, y] positions
 
     bg_level5_scaled = pygame.transform.scale(bg_level5, (WIDTH, HEIGHT))
 
@@ -457,14 +758,18 @@ def level5():
         keys = pygame.key.get_pressed()
 
         if keys[pygame.K_UP] and on_ground:
-            player_y_vel = jump_power
+            # Use dictionary value for jump power
+            player_y_vel = level5_settings["jump_power"]
             on_ground = False
 
-        player_y_vel += gravity
+        # Use dictionary value for gravity
+        player_y_vel += level5_settings["gravity"]
         player.y += player_y_vel
 
-        if player.y >= HEIGHT - 100:
-            player.y = HEIGHT - 100
+        # Ground collision - adjust for larger player size
+        ground_level = HEIGHT - 100
+        if player.y + level5_player_size >= ground_level:
+            player.y = ground_level - level5_player_size
             player_y_vel = 0
             on_ground = True
 
@@ -480,21 +785,38 @@ def level5():
 
         cow_shoot_timer -= 1*(1+(4-cow_lives)//5)
         if cow_shoot_timer <= 0:
-            bullets_cow.append([cow.x, cow.y + 20])
-            cow_shoot_timer = random.randint(40, 60)  # fire every 1.3–2 sec
+            bullets_cow.append([cow.x, 
+                              cow.y + int(level5_settings["base_cow_height"] * 
+                                        level5_cow_size // 2)])
+            # Use dictionary values for shoot timing range
+            cow_shoot_timer = random.randint(
+                level5_settings["cow_shoot_min"], 
+                level5_settings["cow_shoot_max"]
+            )
 
+        # Draw player with increased size
+        original_player_size = player_size
+        player_size = level5_player_size
         draw_stickman(player.x, player.y, BLUE)
-        draw_cow(cow.x, cow.y)
+        player_size = original_player_size
+        
+        draw_cow(cow.x, cow.y, size=level5_cow_size)
         draw_text_centered("Press SPACE to shoot the cow | UP to jump", FONT, BLACK, WIN, 40)
+        
         for b in bullets_player[:]:
-            pygame.draw.circle(WIN, RED, (b[0], b[1]), 5)
+            bullet_x = b[0] - bullet_size // 2
+            bullet_y = b[1] - bullet_size // 2
+            WIN.blit(player_bullet_img, (bullet_x, bullet_y))
 
-            b[0] += 12
+            # Use dictionary value for player bullet speed
+            b[0] += level5_settings["bullet_speed_player"]
             if b[0] > WIDTH:
                 bullets_player.remove(b)
                 continue
 
-            if cow.collidepoint(b[0], b[1]):
+            # Proper hitbox matching bullet image size
+            bullet_rect = pygame.Rect(bullet_x, bullet_y, bullet_size, bullet_size)
+            if cow.colliderect(bullet_rect):
                 bullets_player.remove(b)
                 cow_lives -= 1
                 if cow_lives <= 0:
@@ -505,11 +827,18 @@ def level5():
                     return True
 
         for cb in bullets_cow[:]:
-            pygame.draw.circle(WIN, PINK, (cb[0], cb[1]), 5)
-            cb[0] -= 10
+            bullet_x = cb[0] - bullet_size // 2
+            bullet_y = cb[1] - bullet_size // 2
+            WIN.blit(cow_bullet_img, (bullet_x, bullet_y))
+            # Use dictionary value for cow bullet speed (moving left)
+            cb[0] -= level5_settings["bullet_speed_cow"]
             if cb[0] < 0:
                 bullets_cow.remove(cb)
-            if player.collidepoint(cb[0], cb[1]):
+                continue
+            
+            # Proper hitbox matching bullet image size
+            bullet_rect = pygame.Rect(bullet_x, bullet_y, bullet_size, bullet_size)
+            if player.colliderect(bullet_rect):
                 WIN.fill(WHITE)
                 draw_text_centered("You were milk-blasted!", BIG_FONT, PINK, WIN, HEIGHT//2)
                 pygame.display.update()
@@ -524,8 +853,11 @@ def level5():
 
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_SPACE:
-                    if current_time - last_key_press_time >= cooldown_duration:
-                        bullets_player.append([player.x + 20, player.y + 20])
+                    # Use dictionary value for cooldown duration
+                    if (current_time - last_key_press_time >= 
+                        level5_settings["cooldown_duration"]):
+                        bullets_player.append([player.x + level5_player_size // 2, 
+                                             player.y + level5_player_size // 2])
                         last_key_press_time = current_time
                     # shoot_sound.play()
 
@@ -536,6 +868,8 @@ def main_menu():
     
     player_name = get_player_name()
     show_controls()
+    # Play opening scene video before starting level 1
+    play_opening_scene()
     retry_level(level1)
     retry_level(level2)
     if retry_level(level3) != 'good ending':
