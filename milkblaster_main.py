@@ -66,6 +66,8 @@ gravity = 1
 cow_speed = 3
 level_attempts = 3
 player_name = "Player"
+player_health = 3  # Global health tracker (starts with 3 lives)
+max_health = 3  # Maximum health value
 
 # Initial loading
 cow_img = pygame.image.load("Cow_cartoon_04.svg.png").convert_alpha()
@@ -129,6 +131,42 @@ def draw_text_centered(text, font, color, surface, y):
     render = font.render(text, True, color)
     rect = render.get_rect(center=(WIDTH//2, y))
     surface.blit(render, rect)
+
+def draw_health_bar(current_health, max_health):
+    """
+    Draw a health bar in the top right corner
+    Shows a black box with diagonal line divisions and red fill
+    Health decreases from right to left
+    """
+    # Health bar dimensions and position
+    bar_width = 150
+    bar_height = 30
+    bar_x = WIDTH - bar_width - 10  # 10 pixels from right edge
+    bar_y = 10  # 10 pixels from top
+    
+    # Draw black background box
+    pygame.draw.rect(WIN, BLACK, (bar_x, bar_y, bar_width, bar_height))
+    pygame.draw.rect(WIN, WHITE, (bar_x, bar_y, bar_width, bar_height), 2)  # White border
+    
+    # Number of health segments (3 segments for 3 lives)
+    num_segments = max_health
+    segment_width = bar_width / num_segments
+    
+    # Draw diagonal division lines between segments
+    for i in range(1, num_segments):
+        x_pos = bar_x + (i * segment_width)
+        # Draw diagonal line from top-left to bottom-right
+        pygame.draw.line(WIN, WHITE, (x_pos, bar_y), (x_pos + 3, bar_y + bar_height), 2)
+        # Draw diagonal line from bottom-left to top-right
+        pygame.draw.line(WIN, WHITE, (x_pos, bar_y + bar_height), (x_pos + 3, bar_y), 2)
+    
+    # Fill health segments with red (from left to right, up to current_health)
+    # Fill decreases from right to left as health decreases
+    filled_segments = current_health
+    for i in range(filled_segments):
+        segment_x = bar_x + (i * segment_width) + 2  # +2 for small padding
+        segment_rect = pygame.Rect(segment_x, bar_y + 2, segment_width - 4, bar_height - 4)
+        pygame.draw.rect(WIN, RED, segment_rect)
 
 def countdown():
     loadingscr = pygame.transform.scale(loading_bg, (WIDTH, HEIGHT))
@@ -225,6 +263,86 @@ def show_controls():
                 sys.exit()
             if event.type == pygame.KEYDOWN and event.key == pygame.K_RETURN:
                 showing = False
+
+def show_game_over():
+    """
+    Display game over screen with lose image when player runs out of health
+    """
+    try:
+        lose_img = pygame.image.load("loseimage.jpeg").convert()
+        lose_img_scaled = pygame.transform.scale(lose_img, (WIDTH, HEIGHT))
+    except Exception as e:
+        print(f"Warning: Could not load lose image: {e}")
+        lose_img_scaled = None
+    
+    # Stop any playing music
+    if pygame.mixer.music.get_busy():
+        pygame.mixer.music.stop()
+    
+    showing = True
+    while showing:
+        if lose_img_scaled:
+            WIN.blit(lose_img_scaled, (0, 0))
+        else:
+            WIN.fill(BLACK)
+            draw_text_centered("Game Over!", BIG_FONT, RED, WIN, HEIGHT//2 - 30)
+            draw_text_centered("You ran out of health!", FONT, WHITE, WIN, HEIGHT//2 + 20)
+        
+        pygame.display.update()
+        
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            if event.type == pygame.KEYDOWN:
+                showing = False
+                break
+        clock.tick(30)
+    
+    # Wait a moment before exiting
+    time.sleep(1)
+    pygame.quit()
+    sys.exit()
+
+def show_game_over():
+    """
+    Display game over screen with lose image when player runs out of health
+    """
+    try:
+        lose_img = pygame.image.load("loseimage.jpeg").convert()
+        lose_img_scaled = pygame.transform.scale(lose_img, (WIDTH, HEIGHT))
+    except Exception as e:
+        print(f"Warning: Could not load lose image: {e}")
+        lose_img_scaled = None
+    
+    # Stop any playing music
+    if pygame.mixer.music.get_busy():
+        pygame.mixer.music.stop()
+    
+    showing = True
+    while showing:
+        if lose_img_scaled:
+            WIN.blit(lose_img_scaled, (0, 0))
+        else:
+            WIN.fill(BLACK)
+            draw_text_centered("Game Over!", BIG_FONT, RED, WIN, HEIGHT//2 - 30)
+            draw_text_centered("You ran out of health!", FONT, WHITE, WIN, HEIGHT//2 + 20)
+        
+        pygame.display.update()
+        
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            if event.type == pygame.KEYDOWN:
+                showing = False
+                break
+        clock.tick(30)
+    
+    # Wait a moment before exiting
+    time.sleep(1)
+    pygame.quit()
+    sys.exit()
 
 def play_opening_scene(video_path="openingscenevideo.mp4", audio_path="openingscenevideo.mp3"):
     """
@@ -417,6 +535,128 @@ def play_opening_scene(video_path="openingscenevideo.mp4", audio_path="openingsc
         traceback.print_exc()
         # Continue game even if video fails
 
+def play_video(video_path, audio_path=None):
+    """
+    Video playback function with optional synchronized audio
+    Plays video file using OpenCV and displays frames in pygame
+    If audio_path is not provided, automatically looks for MP3 with same name
+    """
+    # Check if cv2 is available
+    try:
+        import cv2
+    except ImportError:
+        print(f"OpenCV not available - skipping video: {video_path}")
+        return
+    
+    try:
+        import os
+        
+        if not os.path.exists(video_path):
+            print(f"Video file not found: {video_path}")
+            return
+        
+        # Auto-detect audio file if not provided
+        if audio_path is None:
+            # Replace .mp4 extension with .mp3
+            audio_path = os.path.splitext(video_path)[0] + ".mp3"
+        
+        # Load and start audio if available
+        audio_loaded = False
+        if os.path.exists(audio_path):
+            try:
+                print(f"Loading audio: {audio_path}")
+                pygame.mixer.music.load(audio_path)
+                pygame.mixer.music.set_volume(1.0)
+                audio_loaded = True
+                print("Audio loaded successfully")
+            except Exception as e:
+                print(f"Warning: Could not load audio file: {e}")
+                audio_loaded = False
+        else:
+            print(f"Audio file not found: {audio_path} - video will play without audio")
+        
+        cap = cv2.VideoCapture(video_path)
+        
+        if not cap.isOpened():
+            print(f"Could not open video file: {video_path}")
+            return
+        
+        # Get video FPS
+        fps = cap.get(cv2.CAP_PROP_FPS)
+        if fps <= 0:
+            fps = 30
+        
+        # Start audio playback when video starts
+        if audio_loaded:
+            try:
+                pygame.mixer.music.play()
+                print("Audio playback started")
+            except Exception as e:
+                print(f"Warning: Could not start audio playback: {e}")
+        
+        playing = True
+        
+        while playing:
+            ret, frame = cap.read()
+            
+            if not ret:  # End of video
+                break
+            
+            # Convert BGR to RGB and resize
+            frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            frame_resized = cv2.resize(frame_rgb, (WIDTH, HEIGHT))
+            
+            # Convert to pygame surface
+            frame_pil = Image.fromarray(frame_resized)
+            try:
+                frame_surface = pygame.image.frombytes(
+                    frame_pil.tobytes(), 
+                    frame_pil.size, 
+                    frame_pil.mode
+                ).convert()
+            except AttributeError:
+                frame_surface = pygame.image.fromstring(
+                    frame_pil.tobytes(), 
+                    frame_pil.size, 
+                    frame_pil.mode
+                ).convert()
+            
+            # Display frame
+            WIN.blit(frame_surface, (0, 0))
+            pygame.display.update()
+            
+            # Control playback speed
+            target_fps = max(min(fps, 60), 10)
+            clock.tick(target_fps)
+            
+            # Check for quit or skip
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    cap.release()
+                    pygame.quit()
+                    sys.exit()
+                if event.type == pygame.KEYDOWN:
+                    playing = False
+                    # Stop audio if playing
+                    if audio_loaded and pygame.mixer.music.get_busy():
+                        pygame.mixer.music.stop()
+                    break
+        
+        cap.release()  # Release video file
+        
+        # Wait for audio to finish if it's still playing
+        if audio_loaded and pygame.mixer.music.get_busy():
+            print("Waiting for audio to finish...")
+            while pygame.mixer.music.get_busy():
+                pygame.time.wait(100)  # Wait 100ms at a time
+        
+        time.sleep(0.3)  # Brief pause after video
+        
+    except Exception as e:
+        print(f"Error playing video {video_path}: {e}")
+        import traceback
+        traceback.print_exc()
+
 # level system setup
 def retry_level(level_func, attempts=level_attempts):
     if attempts == 0:
@@ -432,6 +672,7 @@ def retry_level(level_func, attempts=level_attempts):
 
 # levels
 def level1():
+    global player_health
     countdown()
     
     # Dictionary storing level 1 specific configuration
@@ -484,6 +725,8 @@ def level1():
             draw_cookie(c.x, c.y)
         draw_stickman(player.x, player.y, BLUE)
         draw_cow(cow.x, cow.y, facing_right=True)
+        # Draw health bar
+        draw_health_bar(player_health, max_health)
         pygame.display.update()
 
         for event in pygame.event.get():
@@ -521,6 +764,10 @@ def level1():
         elif cow.y > player.y:
             cow.y -= cow_speed * level1_config["cow_speed_y_down"]
         if player.colliderect(cow):
+            player_health -= 1
+            # Check if health is depleted
+            if player_health <= 0:
+                show_game_over()
             return False
 
         for c in cookies[:]:
@@ -534,6 +781,9 @@ def level1():
             return True
 
 def level2():
+    global player_health
+    # Play video before bomb round (level 2)
+    play_video("beforebombvideo.mp4")
     countdown()
     rainbow_wires = ["red", "orange", "yellow", "green", "blue", "indigo", "violet"]
     wire_order = rainbow_wires.copy()
@@ -574,6 +824,9 @@ def level2():
 
         draw_text_centered(f"Cut sequence: {drawn_order}",
                            pygame.font.Font("pixelfont2.otf", 20), WHITE, WIN, HEIGHT//4+15)
+        
+        # Draw health bar
+        draw_health_bar(player_health, max_health)
 
         pygame.display.update()
 
@@ -591,6 +844,10 @@ def level2():
                 if idx is not None:
                     drawn_order.append(rainbow_wires[idx])
                     if drawn_order != wire_order[:len(drawn_order)]:
+                        player_health -= 1
+                        # Check if health is depleted
+                        if player_health <= 0:
+                            show_game_over()
                         draw_text_centered("BOOM! Wrong wire!", BIG_FONT, RED, WIN, HEIGHT//2)
                         pygame.display.update()
                         time.sleep(2)
@@ -599,6 +856,8 @@ def level2():
                         return True
 
 def level3():
+    # Play video before decision round (level 3)
+    play_video("beforedecisionvideo.mp4")
     countdown()
     bg_level3_scaled = pygame.transform.scale(bg_level3, (WIDTH, HEIGHT))
     run = True
@@ -606,6 +865,8 @@ def level3():
         WIN.blit(bg_level3_scaled,(0,0))
         draw_text_centered(f"{'  '*26}B: Give milk back", pygame.font.Font("pixelfont2.otf", 28), GREEN, WIN, HEIGHT//3+15)
         draw_text_centered(f"A: Run away{'  '*25}", FONT, RED, WIN, HEIGHT//3+7)
+        # Draw health bar
+        draw_health_bar(player_health, max_health)
         pygame.display.update()
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -613,6 +874,8 @@ def level3():
                 sys.exit()
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_b:
+                    # Play video when user chooses option B
+                    play_video("userchooseoptionBvideo.mp4")
                     WIN.fill(WHITE)
                     draw_text_centered("Cow is happy! You win!", BIG_FONT, GREEN, WIN, HEIGHT//2)
                     pygame.display.update()
@@ -622,6 +885,9 @@ def level3():
                     return True
 
 def level4():
+    global player_health
+    # Play video before red light/green light round (level 4)
+    play_video("redlightgreenlight.mp4")
     countdown()
     player = pygame.Rect(50, HEIGHT - 100, player_size, player_size)
     goal_x = WIDTH - 100
@@ -665,6 +931,10 @@ def level4():
                     return True
         else:
             if keys[pygame.K_RIGHT]:
+                player_health -= 1
+                # Check if health is depleted
+                if player_health <= 0:
+                    show_game_over()
                 return False
 
         warning_text = ""
@@ -697,13 +967,32 @@ def level4():
             draw_cow(cow_x, cow_y, facing_right=True, size=3)  # Flipped to look away
         else:
             draw_cow(cow_x, cow_y, facing_right=False, size=3)  # Not flipped, looks at player
+        
+        # Draw health bar
+        draw_health_bar(player_health, max_health)
 
         pygame.display.update()
         clock.tick(30)
 
 def level5():
-    global player_size
+    global player_size, player_health
+    # Play video before last level (level 5)
+    play_video("beforelastlevel.mp4")
     countdown()
+    
+    # Load and start looping background music for final round
+    import os
+    audio_loaded = False
+    if os.path.exists("finalround.mp3"):
+        try:
+            print("Loading final round music...")
+            pygame.mixer.music.load("finalround.mp3")
+            pygame.mixer.music.set_volume(1.0)
+            pygame.mixer.music.play(-1)  # -1 means loop forever
+            audio_loaded = True
+            print("Final round music started (looping)")
+        except Exception as e:
+            print(f"Warning: Could not load final round music: {e}")
 
     # Dictionary storing all level 5 game settings
     # Dictionaries are great for organizing related configuration data
@@ -820,34 +1109,61 @@ def level5():
                 bullets_player.remove(b)
                 cow_lives -= 1
                 if cow_lives <= 0:
-                    WIN.fill(WHITE)
-                    draw_text_centered("You win! Steak and milk!", BIG_FONT, GREEN, WIN, HEIGHT // 2)
-                    pygame.display.update()
-                    time.sleep(3)
+                    # Stop the looping music
+                    if audio_loaded:
+                        pygame.mixer.music.stop()
+                    # Play video after winning the game (replaces text message)
+                    play_video("aftergamewinvideo.mp4")
                     return True
 
         for cb in bullets_cow[:]:
-            bullet_x = cb[0] - bullet_size // 2
-            bullet_y = cb[1] - bullet_size // 2
-            WIN.blit(cow_bullet_img, (bullet_x, bullet_y))
+            # Reduced circle size for final round bullets
+            circle_radius = 8  # Smaller circle (16 pixels diameter)
+            circle_center_x = int(cb[0])
+            circle_center_y = int(cb[1])
+            
+            # Draw white circle instead of milkblast image
+            pygame.draw.circle(WIN, WHITE, 
+                             (circle_center_x, circle_center_y), 
+                             circle_radius)
+            
             # Use dictionary value for cow bullet speed (moving left)
             cb[0] -= level5_settings["bullet_speed_cow"]
             if cb[0] < 0:
                 bullets_cow.remove(cb)
                 continue
             
-            # Proper hitbox matching bullet image size
-            bullet_rect = pygame.Rect(bullet_x, bullet_y, bullet_size, bullet_size)
+            # Hitbox matches circle size perfectly (circle diameter = 2 * radius)
+            circle_diameter = circle_radius * 2
+            bullet_rect = pygame.Rect(
+                circle_center_x - circle_radius, 
+                circle_center_y - circle_radius, 
+                circle_diameter, 
+                circle_diameter
+            )
             if player.colliderect(bullet_rect):
+                # Stop the looping music
+                if audio_loaded:
+                    pygame.mixer.music.stop()
+                player_health -= 1
+                # Check if health is depleted
+                if player_health <= 0:
+                    show_game_over()
                 WIN.fill(WHITE)
                 draw_text_centered("You were milk-blasted!", BIG_FONT, PINK, WIN, HEIGHT//2)
                 pygame.display.update()
                 time.sleep(3)
                 return False
+        
+        # Draw health bar last so it appears on top
+        draw_health_bar(player_health, max_health)
         pygame.display.update()
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
+                # Stop music before quitting
+                if audio_loaded:
+                    pygame.mixer.music.stop()
                 pygame.quit()
                 sys.exit()
 
@@ -865,6 +1181,9 @@ def level5():
 # menus
 def main_menu():
     # pygame.mixer.music.play(-1)  # -1 loops forever
+    # Reset player health at the start of the game
+    global player_health
+    player_health = max_health
     
     player_name = get_player_name()
     show_controls()
@@ -876,10 +1195,8 @@ def main_menu():
         retry_level(level4)
         retry_level(level5)
 
-    WIN.fill(WHITE)
-    draw_text_centered("Congratulations! Game Complete!", BIG_FONT, GREEN, WIN, HEIGHT//2)
-    pygame.display.update()
-    time.sleep(5)
+    # After completing all levels, the aftergamewinvideo already played in level 5
+    # No need to show congratulations message - video handles it
     pygame.quit()
     sys.exit()
 
