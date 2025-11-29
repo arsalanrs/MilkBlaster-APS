@@ -876,10 +876,8 @@ def level3():
                 if event.key == pygame.K_b:
                     # Play video when user chooses option B
                     play_video("userchooseoptionBvideo.mp4")
-                    WIN.fill(WHITE)
-                    draw_text_centered("Cow is happy! You win!", BIG_FONT, GREEN, WIN, HEIGHT//2)
-                    pygame.display.update()
-                    time.sleep(3)
+                    # Play aftergamewinvideo after user chooses option B
+                    play_video("aftergamewinvideo.mp4")
                     return False
                 elif event.key == pygame.K_a:
                     return True
@@ -979,6 +977,14 @@ def level5():
     # Play video before last level (level 5)
     play_video("beforelastlevel.mp4")
     countdown()
+    
+    # Load milkblasted image for death screen
+    try:
+        milkblasted_img = pygame.image.load("milkblasted.jpeg").convert()
+        milkblasted_img_scaled = pygame.transform.scale(milkblasted_img, (WIDTH, HEIGHT))
+    except Exception as e:
+        print(f"Warning: Could not load milkblasted image: {e}")
+        milkblasted_img_scaled = None
     
     # Load and start looping background music for final round
     import os
@@ -1149,8 +1155,12 @@ def level5():
                 # Check if health is depleted
                 if player_health <= 0:
                     show_game_over()
-                WIN.fill(WHITE)
-                draw_text_centered("You were milk-blasted!", BIG_FONT, PINK, WIN, HEIGHT//2)
+                # Show milkblasted image instead of text message
+                if milkblasted_img_scaled:
+                    WIN.blit(milkblasted_img_scaled, (0, 0))
+                else:
+                    WIN.fill(WHITE)
+                    draw_text_centered("You were milk-blasted!", BIG_FONT, PINK, WIN, HEIGHT//2)
                 pygame.display.update()
                 time.sleep(3)
                 return False

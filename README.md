@@ -19,6 +19,7 @@ Retro Cow Chase Adventure is a challenging 5-level adventure game that combines 
 - Python 3.6 or higher
 - Pygame
 - Pillow (PIL)
+- OpenCV (opencv-python) - for video playback
 
 ## 🔧 Installation
 
@@ -30,7 +31,12 @@ cd MilkBlaster-APS
 
 2. Install the required dependencies:
 ```bash
-pip install pygame pillow
+pip install -r requirements.txt
+```
+
+Or install manually:
+```bash
+pip install pygame pillow opencv-python
 ```
 
 ## 🚀 How to Run
@@ -79,12 +85,16 @@ python milkblaster_main.py
 
 ```
 MilkBlaster-APS/
-├── chatgpt_game2.py       # Main game file
+├── milkblaster_main.py    # Main game file
+├── requirements.txt       # Python dependencies
 ├── bglevel1.jpeg          # Level 1 background
 ├── lv1blocks.jpeg         # Level 1 platform blocks
 ├── Cow_cartoon_04.svg.png # Cow character sprite
 ├── output-onlinegiftools.gif  # Stickman animation
 ├── 1ee617f89cec2e319198dd1caa6fea67.gif  # Additional animation
+├── loseimage.jpeg         # Game over screen image
+├── *.mp4                  # Video cutscenes
+├── *.mp3                  # Audio files
 └── README.md              # This file
 ```
 
